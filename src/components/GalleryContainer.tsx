@@ -4,6 +4,7 @@ import { useGalleryStore } from '../stores/galleryStore'
 import { useNavigationStore } from '../stores/navigationStore'
 import { useSelectionStore } from '../stores/selectionStore'
 import { useUIStore } from '../stores/uiStore'
+import { useConfigStore } from '../stores/configStore'
 import { useAppConfigStore } from '../stores/appConfigStore'
 import { message, confirm } from '../stores'
 import { getS3Service } from '../services/s3Service'
@@ -17,16 +18,23 @@ export const GalleryContainer: React.FC = () => {
   const { selectedItems, toggleSelection, clearSelection } = useSelectionStore()
   const { showViewer, showRenameModal, showMoveModal } = useUIStore()
   const { itemsPerPage, copyFormat } = useAppConfigStore()
+  const config = useConfigStore((state) => state.config)
+  const isInitialized = useConfigStore((state) => state.isInitialized)
   
   const [currentPage, setCurrentPage] = useState(1)
 
-  // 加载当前路径的内容
+  // 配置初始化完成后，加载内容
   useEffect(() => {
-    loadItems(currentPath)
-    // 路径改变时清除选择和重置页码
+    if (isInitialized && config) {
+      loadItems(currentPath)
+    }
+  }, [isInitialized, config, currentPath, loadItems])
+
+  // 路径改变时清除选择和重置页码
+  useEffect(() => {
     clearSelection()
     setCurrentPage(1)
-  }, [currentPath, loadItems, clearSelection])
+  }, [currentPath, clearSelection])
 
   // 处理返回上一级
   const handleGoBack = () => {
