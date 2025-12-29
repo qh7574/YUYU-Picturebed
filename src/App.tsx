@@ -14,6 +14,7 @@ import {
   UploadModalContainer,
   RenameModalContainer,
   MoveModalContainer,
+  CopyModalContainer,
   CreateFolderModalContainer,
   GlobalMessage,
   GlobalConfirm,
@@ -80,6 +81,7 @@ function App() {
         <UploadModalContainer />
         <RenameModalContainer />
         <MoveModalContainer />
+        <CopyModalContainer />
         <CreateFolderModalContainer />
         
         {/* 全局组件 */}

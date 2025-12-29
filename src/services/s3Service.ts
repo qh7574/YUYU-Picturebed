@@ -244,9 +244,11 @@ export class S3Service implements IS3Service {
         await this.renameFolderRecursive(oldKey, newKey)
       } else {
         // 文件重命名：直接复制+删除
+        // 对 CopySource 进行 URL 编码以支持中文文件名
+        const encodedOldKey = encodeURIComponent(oldKey).replace(/%2F/g, '/')
         const copyCommand = new CopyObjectCommand({
           Bucket: this.config.bucket,
-          CopySource: `${this.config.bucket}/${oldKey}`,
+          CopySource: `${this.config.bucket}/${encodedOldKey}`,
           Key: newKey,
         })
 
@@ -293,10 +295,11 @@ export class S3Service implements IS3Service {
         return
       }
       
-      // 复制对象
+      // 对 CopySource 进行 URL 编码以支持中文文件名
+      const encodedItemKey = encodeURIComponent(item.Key).replace(/%2F/g, '/')
       const copyCommand = new CopyObjectCommand({
         Bucket: this.config.bucket,
-        CopySource: `${this.config.bucket}/${item.Key}`,
+        CopySource: `${this.config.bucket}/${encodedItemKey}`,
         Key: newKey,
       })
       
@@ -323,6 +326,87 @@ export class S3Service implements IS3Service {
   async moveObject(oldKey: string, newKey: string): Promise<void> {
     // 移动和重命名的实现相同
     return this.renameObject(oldKey, newKey)
+  }
+
+  /**
+   * 复制对象到新位置
+   * @param sourceKey 源对象键
+   * @param targetKey 目标对象键
+   */
+  async copyObject(sourceKey: string, targetKey: string): Promise<void> {
+    try {
+      // 判断是否为文件夹
+      const isFolder = sourceKey.endsWith('/')
+      
+      if (isFolder) {
+        // 文件夹复制：需要递归处理所有子对象
+        await this.copyFolderRecursive(sourceKey, targetKey)
+      } else {
+        // 文件复制：直接复制
+        // 对 CopySource 进行 URL 编码以支持中文文件名
+        const encodedSourceKey = encodeURIComponent(sourceKey).replace(/%2F/g, '/')
+        const copyCommand = new CopyObjectCommand({
+          Bucket: this.config.bucket,
+          CopySource: `${this.config.bucket}/${encodedSourceKey}`,
+          Key: targetKey,
+        })
+
+        await this.client.send(copyCommand)
+      }
+    } catch (error) {
+      console.error('复制对象失败:', error)
+      throw new Error(`复制对象失败: ${error instanceof Error ? error.message : '未知错误'}`)
+    }
+  }
+
+  /**
+   * 递归复制文件夹及其所有内容
+   * @param sourcePrefix 源文件夹前缀
+   * @param targetPrefix 目标文件夹前缀
+   */
+  private async copyFolderRecursive(sourcePrefix: string, targetPrefix: string): Promise<void> {
+    // 列出文件夹下的所有对象（不使用分隔符，获取所有子对象）
+    const command = new ListObjectsV2Command({
+      Bucket: this.config.bucket,
+      Prefix: sourcePrefix,
+    })
+
+    const response = await this.client.send(command)
+    
+    if (!response.Contents || response.Contents.length === 0) {
+      // 空文件夹，只需创建新文件夹标记
+      await this.uploadObject(targetPrefix, new Blob([]))
+      return
+    }
+
+    // 复制所有对象到新路径
+    const copyPromises = response.Contents.map(async (item) => {
+      if (!item.Key) return
+      
+      // 构建新的 key（替换前缀）
+      const relativePath = item.Key.substring(sourcePrefix.length)
+      const newKey = targetPrefix + relativePath
+      
+      // 跳过文件夹标记对象（大小为0且以/结尾）
+      if (item.Key.endsWith('/') && (item.Size === 0 || !item.Size)) {
+        return
+      }
+      
+      // 对 CopySource 进行 URL 编码以支持中文文件名
+      const encodedItemKey = encodeURIComponent(item.Key).replace(/%2F/g, '/')
+      const copyCommand = new CopyObjectCommand({
+        Bucket: this.config.bucket,
+        CopySource: `${this.config.bucket}/${encodedItemKey}`,
+        Key: newKey,
+      })
+      
+      await this.client.send(copyCommand)
+    })
+
+    await Promise.all(copyPromises)
+
+    // 创建新文件夹标记
+    await this.uploadObject(targetPrefix, new Blob([]))
   }
 
   /**

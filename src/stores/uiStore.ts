@@ -9,8 +9,11 @@ interface UIState {
   currentImageIndex: number
   renameModalVisible: boolean
   moveModalVisible: boolean
+  copyModalVisible: boolean
   createFolderModalVisible: boolean
   currentOperationItem: { key: string; name: string } | null
+  batchMoveMode: boolean
+  batchCopyMode: boolean
   toggleTheme: () => void
   showUploadModal: () => void
   hideUploadModal: () => void
@@ -23,7 +26,11 @@ interface UIState {
   showRenameModal: (item: { key: string; name: string }) => void
   hideRenameModal: () => void
   showMoveModal: (item: { key: string; name: string }) => void
+  showBatchMoveModal: () => void
   hideMoveModal: () => void
+  showCopyModal: (item: { key: string; name: string }) => void
+  showBatchCopyModal: () => void
+  hideCopyModal: () => void
   showCreateFolderModal: () => void
   hideCreateFolderModal: () => void
 }
@@ -36,8 +43,11 @@ export const useUIStore = create<UIState>((set) => ({
   currentImageIndex: 0,
   renameModalVisible: false,
   moveModalVisible: false,
+  copyModalVisible: false,
   createFolderModalVisible: false,
   currentOperationItem: null,
+  batchMoveMode: false,
+  batchCopyMode: false,
 
   toggleTheme: () =>
     set((state) => {
@@ -70,9 +80,18 @@ export const useUIStore = create<UIState>((set) => ({
     set({ renameModalVisible: false, currentOperationItem: null }),
 
   showMoveModal: (item: { key: string; name: string }) =>
-    set({ moveModalVisible: true, currentOperationItem: item }),
+    set({ moveModalVisible: true, currentOperationItem: item, batchMoveMode: false }),
+  showBatchMoveModal: () =>
+    set({ moveModalVisible: true, batchMoveMode: true }),
   hideMoveModal: () =>
-    set({ moveModalVisible: false, currentOperationItem: null }),
+    set({ moveModalVisible: false, currentOperationItem: null, batchMoveMode: false }),
+
+  showCopyModal: (item: { key: string; name: string }) =>
+    set({ copyModalVisible: true, currentOperationItem: item, batchCopyMode: false }),
+  showBatchCopyModal: () =>
+    set({ copyModalVisible: true, batchCopyMode: true }),
+  hideCopyModal: () =>
+    set({ copyModalVisible: false, currentOperationItem: null, batchCopyMode: false }),
 
   showCreateFolderModal: () => set({ createFolderModalVisible: true }),
   hideCreateFolderModal: () => set({ createFolderModalVisible: false }),

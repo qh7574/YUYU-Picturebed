@@ -4,6 +4,7 @@ import { useNavigationStore } from '../stores/navigationStore'
 import { useSelectionStore } from '../stores/selectionStore'
 import { useGalleryStore } from '../stores/galleryStore'
 import { useAppConfigStore } from '../stores/appConfigStore'
+import { useUIStore } from '../stores/uiStore'
 import { message, confirm, loading } from '../stores'
 import { getS3Service } from '../services/s3Service'
 import { imageService } from '../services/imageService'
@@ -18,6 +19,8 @@ export const BreadcrumbContainer: React.FC = () => {
   const { selectedItems, clearSelection } = useSelectionStore()
   const { items, refreshItems } = useGalleryStore()
   const { copyFormat } = useAppConfigStore()
+  const showBatchMoveModal = useUIStore((state) => state.showBatchMoveModal)
+  const showBatchCopyModal = useUIStore((state) => state.showBatchCopyModal)
 
   // 获取选中的图片项
   const selectedImageItems = React.useMemo(() => {
@@ -26,10 +29,31 @@ export const BreadcrumbContainer: React.FC = () => {
     )
   }, [items, selectedItems])
 
+  // 获取当前页所有可选择的项（排除返回上一级项）
+  const selectableItems = React.useMemo(() => {
+    return items.filter((item) => item.key !== '__back__')
+  }, [items])
+
   // 处理路径导航
   const handleNavigate = (path: string) => {
     goToPath(path)
     clearSelection()
+  }
+
+  // 处理全选
+  const handleSelectAll = () => {
+    const allKeys = selectableItems.map((item) => item.key)
+    
+    // 如果当前所有项都已选中，则取消全选；否则全选
+    const allSelected = allKeys.every((key) => selectedItems.has(key))
+    
+    if (allSelected) {
+      clearSelection()
+    } else {
+      // 使用 selectAll 方法
+      const { selectAll } = useSelectionStore.getState()
+      selectAll(allKeys)
+    }
   }
 
   // 批量下载
@@ -150,8 +174,11 @@ export const BreadcrumbContainer: React.FC = () => {
       currentPath={currentPath}
       onNavigate={handleNavigate}
       selectedCount={selectedItems.size}
+      onSelectAll={handleSelectAll}
       onBatchDownload={handleBatchDownload}
+      onBatchCopy={showBatchCopyModal}
       onBatchCopyUrl={handleBatchCopyUrl}
+      onBatchMove={showBatchMoveModal}
       onBatchDelete={handleBatchDelete}
     />
   )

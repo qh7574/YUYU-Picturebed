@@ -1,5 +1,5 @@
 import React from 'react'
-import { MoveModal } from './MoveModal'
+import { CopyModal } from './CopyModal'
 import { useUIStore } from '../stores/uiStore'
 import { useGalleryStore } from '../stores/galleryStore'
 import { useNavigationStore } from '../stores/navigationStore'
@@ -8,26 +8,26 @@ import { message } from '../stores'
 import { getS3Service } from '../services/s3Service'
 import { cacheService } from '../services/cacheService'
 
-export const MoveModalContainer: React.FC = () => {
-  const { moveModalVisible, currentOperationItem, hideMoveModal, batchMoveMode } = useUIStore()
+export const CopyModalContainer: React.FC = () => {
+  const { copyModalVisible, currentOperationItem, hideCopyModal, batchCopyMode } = useUIStore()
   const { refreshItems } = useGalleryStore()
   const { currentPath } = useNavigationStore()
   const { selectedItems, clearSelection } = useSelectionStore()
 
-  const handleMove = async (targetPath: string) => {
+  const handleCopy = async (targetPath: string) => {
     const s3Service = getS3Service()
     if (!s3Service) {
       throw new Error('请先配置S3连接信息')
     }
 
     try {
-      if (batchMoveMode && selectedItems.size > 0) {
-        // 批量移动
-        const keysToMove = Array.from(selectedItems)
+      if (batchCopyMode && selectedItems.size > 0) {
+        // 批量复制
+        const keysToCopy = Array.from(selectedItems)
         let successCount = 0
         let failCount = 0
 
-        for (const key of keysToMove) {
+        for (const key of keysToCopy) {
           try {
             // 获取文件/文件夹名
             const pathParts = key.split('/').filter(Boolean)
@@ -46,24 +46,24 @@ export const MoveModalContainer: React.FC = () => {
               continue
             }
 
-            await s3Service.moveObject(key, newKey)
+            await s3Service.copyObject(key, newKey)
             successCount++
           } catch (error) {
-            console.error(`移动 ${key} 失败:`, error)
+            console.error(`复制 ${key} 失败:`, error)
             failCount++
           }
         }
 
         if (successCount > 0) {
-          message.success(`成功移动 ${successCount} 项${failCount > 0 ? `，失败 ${failCount} 项` : ''}`)
+          message.success(`成功复制 ${successCount} 项${failCount > 0 ? `，失败 ${failCount} 项` : ''}`)
         } else {
-          throw new Error('批量移动失败')
+          throw new Error('批量复制失败')
         }
 
         // 清除选择
         clearSelection()
       } else if (currentOperationItem) {
-        // 单个移动
+        // 单个复制
         const isFolder = currentOperationItem.key.endsWith('/')
         const pathParts = currentOperationItem.key.split('/').filter(Boolean)
         const itemName = pathParts[pathParts.length - 1]
@@ -73,8 +73,8 @@ export const MoveModalContainer: React.FC = () => {
           newKey = newKey + '/'
         }
 
-        await s3Service.moveObject(currentOperationItem.key, newKey)
-        message.success('移动成功')
+        await s3Service.copyObject(currentOperationItem.key, newKey)
+        message.success('复制成功')
       }
 
       // 清除缓存
@@ -84,19 +84,19 @@ export const MoveModalContainer: React.FC = () => {
       // 刷新列表
       await refreshItems()
     } catch (error) {
-      console.error('移动失败:', error)
+      console.error('复制失败:', error)
       throw error
     }
   }
 
   return (
-    <MoveModal
-      visible={moveModalVisible}
+    <CopyModal
+      visible={copyModalVisible}
       currentKey={currentOperationItem?.key || ''}
       currentPath={currentPath}
-      onClose={hideMoveModal}
-      onMove={handleMove}
-      isBatch={batchMoveMode}
+      onClose={hideCopyModal}
+      onCopy={handleCopy}
+      isBatch={batchCopyMode}
       batchCount={selectedItems.size}
     />
   )

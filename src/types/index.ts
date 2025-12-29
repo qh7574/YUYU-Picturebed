@@ -87,6 +87,7 @@ export interface IS3Service {
   deleteObjects(keys: string[]): Promise<BatchOperationResult>
   renameObject(oldKey: string, newKey: string): Promise<void>
   moveObject(oldKey: string, newKey: string): Promise<void>
+  copyObject(sourceKey: string, targetKey: string): Promise<void>
   testConnection(): Promise<boolean>
   getObjectUrl(key: string): string
 }
@@ -187,8 +188,11 @@ export interface BreadcrumbProps {
   currentPath: string
   onNavigate: (path: string) => void
   selectedCount: number
+  onSelectAll?: () => void
   onBatchDownload: () => void
+  onBatchCopy?: () => void
   onBatchCopyUrl: () => void
+  onBatchMove?: () => void
   onBatchDelete: () => void
 }
 

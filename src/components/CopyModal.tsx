@@ -1,22 +1,22 @@
 import React, { useState, useEffect } from 'react'
 import { getS3Service } from '../services/s3Service'
 
-export interface MoveModalProps {
+export interface CopyModalProps {
   visible: boolean
   currentKey: string
   currentPath: string
   onClose: () => void
-  onMove: (targetPath: string) => Promise<void>
+  onCopy: (targetPath: string) => Promise<void>
   isBatch?: boolean
   batchCount?: number
 }
 
-export const MoveModal: React.FC<MoveModalProps> = ({
+export const CopyModal: React.FC<CopyModalProps> = ({
   visible,
   currentKey,
   currentPath,
   onClose,
-  onMove,
+  onCopy,
   isBatch = false,
   batchCount = 0,
 }) => {
@@ -57,7 +57,7 @@ export const MoveModal: React.FC<MoveModalProps> = ({
     e.preventDefault()
 
     if (!isBatch) {
-      // 单个文件移动时检查路径
+      // 单个文件复制时检查路径
       const fileName = currentKey.split('/').pop() || ''
       const newKey = targetPath ? `${targetPath}${fileName}` : fileName
 
@@ -71,10 +71,10 @@ export const MoveModal: React.FC<MoveModalProps> = ({
     setError(null)
 
     try {
-      await onMove(targetPath)
+      await onCopy(targetPath)
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : '移动失败')
+      setError(err instanceof Error ? err.message : '复制失败')
     } finally {
       setLoading(false)
     }
@@ -94,7 +94,7 @@ export const MoveModal: React.FC<MoveModalProps> = ({
       onClick={handleCancel}
       role="dialog"
       aria-modal="true"
-      aria-labelledby="move-modal-title"
+      aria-labelledby="copy-modal-title"
     >
       <div
         className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md"
@@ -103,10 +103,10 @@ export const MoveModal: React.FC<MoveModalProps> = ({
         {/* 标题 */}
         <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
           <h2 
-            id="move-modal-title"
+            id="copy-modal-title"
             className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white"
           >
-            {isBatch ? `批量移动 (${batchCount}项)` : '移动文件'}
+            {isBatch ? `批量复制 (${batchCount}项)` : '复制文件'}
           </h2>
         </div>
 
@@ -199,7 +199,7 @@ export const MoveModal: React.FC<MoveModalProps> = ({
               onClick={handleCancel}
               disabled={loading}
               className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-              aria-label="取消移动"
+              aria-label="取消复制"
             >
               取消
             </button>
@@ -207,9 +207,9 @@ export const MoveModal: React.FC<MoveModalProps> = ({
               type="submit"
               disabled={loading}
               className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-              aria-label={loading ? '正在移动文件' : '确认移动文件'}
+              aria-label={loading ? '正在复制文件' : '确认复制文件'}
             >
-              {loading ? '移动中...' : '确认'}
+              {loading ? '复制中...' : '确认'}
             </button>
           </div>
         </form>
